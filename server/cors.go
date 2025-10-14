@@ -56,6 +56,9 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 		if allowAllOrigins {
 			originAllowed = true
+			if requestOrigin != "" {
+				w.Header().Set("Access-Control-Allow-Origin", requestOrigin)
+			}
 		}
 
 		if originAllowed || r.Method == "OPTIONS" {
