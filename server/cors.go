@@ -10,6 +10,10 @@ import (
 
 func corsMiddleware(next http.Handler) http.Handler {
 	rawAllowedOrigins := os.Getenv("ALLOWED_ORIGINS")
+	allowAllOrigins := false
+	if rawAllowedOrigins == "*" {
+		allowAllOrigins = true
+	}
 	if rawAllowedOrigins == "" && os.Getenv("APP_ENV") == "production" {
 		logger.Warning(nil, "Allowed origins is not set! Please make sure to configure your .env file!")
 	} else if rawAllowedOrigins == "" {
@@ -47,6 +51,10 @@ func corsMiddleware(next http.Handler) http.Handler {
 			}
 		} else {
 			// No Origin header usually means same-origin or a server-to-server request.
+			originAllowed = true
+		}
+
+		if allowAllOrigins {
 			originAllowed = true
 		}
 
