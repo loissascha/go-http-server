@@ -2,14 +2,18 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
+	"github.com/loissascha/go-http-server/respond"
 	"github.com/loissascha/go-http-server/server"
 )
 
 // Example Implementation
 
+var s *server.Server
+
 func main() {
-	s, err := server.NewServer(
+	server, err := server.NewServer(
 		server.EnableTranslations(),
 		server.AddTranslationFile("en", "en_test.json"),
 		server.AddTranslationFile("de", "de_test.json"),
@@ -18,6 +22,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	s = server
+
+	s.GET("/", homeHandler)
+	s.GET("/test", homeHandler)
 
 	fmt.Println("server:", s)
 
@@ -25,4 +33,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	respond.JSON(w, http.StatusOK, map[string]string{
+		"status":      "ok",
+		"test_str":    s.GetLanguageString(r, "test_str"),
+		"unknown_key": s.GetLanguageString(r, "unknown_key"),
+	})
 }

@@ -1,6 +1,10 @@
 package server
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+	"strings"
+)
 
 type Method int
 
@@ -37,6 +41,42 @@ func NewServer(options ...ServerOption) (*Server, error) {
 	return &s, nil
 }
 
+func (s *Server) GetLanguageString(r *http.Request, key string) string {
+	// get currently active language (from url)
+	url := strings.TrimSpace(r.URL.Path)
+	fmt.Println("urlPath:", url)
+	url = strings.TrimLeft(url, "/")
+	fmt.Println("urlTrimmed:", url)
+	urlSplit := strings.Split(url, "/")
+	fmt.Println(urlSplit)
+	activeLanguage := urlSplit[0]
+	fmt.Println("acitve language:", activeLanguage)
+
+	// find the value for the key
+	l, ok := s.Languages[activeLanguage]
+	if !ok {
+		// take default
+		l, ok = s.Languages[s.DefaultLanguage]
+		if !ok {
+			panic("Server default language configuration failed")
+		}
+		return l[key]
+	}
+
+	value, valueFound := l[key]
+
+	// if not found -> take from default
+	if !valueFound {
+		l, ok = s.Languages[s.DefaultLanguage]
+		if !ok {
+			panic("Server default language configuration failed")
+		}
+		return l[key]
+	}
+
+	return value
+}
+
 func (s *Server) GetMux() *http.ServeMux {
 	return s.mux
 }
@@ -58,21 +98,6 @@ func initRouteInfo() RouteInfo {
 		Responses:   map[string]OpenAPIResponse{},
 	}
 	return routeInfo
-}
-
-func (s *Server) GET(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
-	routeInfo := initRouteInfo()
-	for _, opt := range opts {
-		opt(&routeInfo)
-	}
-
-	allMiddlewares := append(routeInfo.Middlewares, getRequest)
-	s.mux.Handle(route, chainMiddleware(http.HandlerFunc(h), allMiddlewares...))
-	s.Paths = append(s.Paths, ServerPath{
-		Route:  route,
-		Method: METHOD_GET,
-		Info:   routeInfo,
-	})
 }
 
 func (s *Server) POST(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
