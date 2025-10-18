@@ -59,7 +59,7 @@ func getRouteParams(route string) []string {
 		} else if status == 1 {
 			if char == "}" {
 				status = 0
-				fmt.Println("status name: ", readingStatusName)
+				// fmt.Println("status name: ", readingStatusName)
 				result = append(result, readingStatusName)
 				readingStatusName = ""
 			} else {

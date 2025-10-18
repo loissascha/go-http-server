@@ -53,7 +53,6 @@ func deleteRequest(next http.Handler) http.Handler {
 func (s *Server) redirectToTranslatedUrl(w http.ResponseWriter, r *http.Request) {
 	if s.AutoDetectLanguageEnabled {
 		langHeader := r.Header.Get("Accept-Language")
-		fmt.Println("langHeader:", langHeader)
 
 		languages := strings.SplitSeq(langHeader, ",")
 		for lang := range languages {

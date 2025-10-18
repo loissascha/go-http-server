@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 )
@@ -42,16 +41,37 @@ func NewServer(options ...ServerOption) (*Server, error) {
 	return &s, nil
 }
 
+func (s *Server) GetLanguageStringMap(r *http.Request) map[string]string {
+	// get currently active language (from url)
+	url := strings.TrimSpace(r.URL.Path)
+	url = strings.TrimLeft(url, "/")
+	urlSplit := strings.Split(url, "/")
+	activeLanguage := urlSplit[0]
+
+	// find the value for the key
+	l, ok := s.Languages[activeLanguage]
+	if !ok {
+		// take default
+		l, ok = s.Languages[s.DefaultLanguage]
+		if !ok {
+			panic("Server default language configuration failed")
+		}
+		return l
+	}
+
+	l, ok = s.Languages[s.DefaultLanguage]
+	if !ok {
+		panic("Server default language configuration failed")
+	}
+	return l
+}
+
 func (s *Server) GetLanguageString(r *http.Request, key string) string {
 	// get currently active language (from url)
 	url := strings.TrimSpace(r.URL.Path)
-	fmt.Println("urlPath:", url)
 	url = strings.TrimLeft(url, "/")
-	fmt.Println("urlTrimmed:", url)
 	urlSplit := strings.Split(url, "/")
-	fmt.Println(urlSplit)
 	activeLanguage := urlSplit[0]
-	fmt.Println("acitve language:", activeLanguage)
 
 	// find the value for the key
 	l, ok := s.Languages[activeLanguage]
