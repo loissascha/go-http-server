@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -37,9 +38,14 @@ func main() {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
+	c, err := json.Marshal(s.GetLanguageStringMap(r))
+	if err != nil {
+		panic(err)
+	}
 	respond.JSON(w, http.StatusOK, map[string]string{
 		"status":      "ok",
 		"test_str":    s.GetLanguageString(r, "test_str"),
 		"unknown_key": s.GetLanguageString(r, "unknown_key"),
+		"map":         string(c),
 	})
 }

@@ -59,10 +59,6 @@ func (s *Server) GetLanguageStringMap(r *http.Request) map[string]string {
 		return l
 	}
 
-	l, ok = s.Languages[s.DefaultLanguage]
-	if !ok {
-		panic("Server default language configuration failed")
-	}
 	return l
 }
 
