@@ -1,6 +1,9 @@
 package server
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 func getRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -44,4 +47,11 @@ func deleteRequest(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) redirectToTranslatedUrl(w http.ResponseWriter, r *http.Request) {
+	if s.AutoDetectLanguageEnabled {
+
+	}
+	http.Redirect(w, r, fmt.Sprintf("/%s%s", s.DefaultLanguage, r.URL.Path), http.StatusFound)
 }

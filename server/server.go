@@ -22,12 +22,13 @@ type ServerPath struct {
 }
 
 type Server struct {
-	mux                 *http.ServeMux
-	Paths               []ServerPath
-	Options             []ServerOption
-	TranslationsEnabled bool
-	Languages           map[string]map[string]string
-	DefaultLanguage     string
+	mux                       *http.ServeMux
+	Paths                     []ServerPath
+	Options                   []ServerOption
+	TranslationsEnabled       bool
+	AutoDetectLanguageEnabled bool
+	Languages                 map[string]map[string]string
+	DefaultLanguage           string
 }
 
 func NewServer(options ...ServerOption) (*Server, error) {

@@ -43,7 +43,3 @@ func (s *Server) GET(route string, h func(w http.ResponseWriter, r *http.Request
 		}
 	}
 }
-
-func (s *Server) redirectToTranslatedUrl(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, fmt.Sprintf("/%s%s", s.DefaultLanguage, r.URL.Path), http.StatusFound)
-}
