@@ -41,6 +41,14 @@ func NewServer(options ...ServerOption) (*Server, error) {
 	return &s, nil
 }
 
+func (s *Server) GetActiveLanguage(r *http.Request) string {
+	url := strings.TrimSpace(r.URL.Path)
+	url = strings.TrimLeft(url, "/")
+	urlSplit := strings.Split(url, "/")
+	activeLanguage := urlSplit[0]
+	return activeLanguage
+}
+
 func (s *Server) GetLanguageStringMap(r *http.Request) map[string]string {
 	// get currently active language (from url)
 	url := strings.TrimSpace(r.URL.Path)
