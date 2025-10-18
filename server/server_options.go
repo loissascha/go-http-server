@@ -1,5 +1,7 @@
 package server
 
+import "os"
+
 type ServerOptionName string
 
 const (
@@ -33,4 +35,26 @@ func SetDefaultLanguage(short string) ServerOption {
 		Name:  TRANSLATION_DEFAULT,
 		Value: short,
 	}
+}
+
+func (s *Server) initServerOptions() {
+	for _, option := range s.Options {
+		switch option.Name {
+		case TRANSLATIONS_ENABLED:
+			s.TranslationsEnabled = true
+		case TRANSLATIONS_ADD:
+			readTranslationFile(option.Filename)
+			break
+		case TRANSLATION_DEFAULT:
+			s.DefaultLanguage = option.Value
+		}
+	}
+}
+
+func readTranslationFile(filepath string) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
 }
