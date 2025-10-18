@@ -58,6 +58,8 @@ func (s *Server) initServerOptions() {
 			s.Languages[option.Value] = data
 		case TRANSLATION_DEFAULT:
 			s.DefaultLanguage = option.Value
+		case TRANSLATIONS_AUTO_DETECT_LANG:
+			s.AutoDetectLanguageEnabled = true
 		}
 	}
 }

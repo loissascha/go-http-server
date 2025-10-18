@@ -18,7 +18,7 @@ func main() {
 		server.EnableAutoDetectLanguage(),
 		server.AddTranslationFile("en", "en_test.json"),
 		server.AddTranslationFile("de", "de_test.json"),
-		server.SetDefaultLanguage("en"),
+		server.SetDefaultLanguage("de"),
 	)
 	if err != nil {
 		panic(err)
