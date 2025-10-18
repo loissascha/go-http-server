@@ -18,13 +18,15 @@ type ServerPath struct {
 }
 
 type Server struct {
-	mux   *http.ServeMux
-	Paths []ServerPath
+	mux     *http.ServeMux
+	Paths   []ServerPath
+	Options []ServerOption
 }
 
-func NewServer() *Server {
+func NewServer(options ...ServerOption) *Server {
 	s := Server{
-		Paths: []ServerPath{},
+		Paths:   []ServerPath{},
+		Options: options,
 	}
 	s.mux = http.NewServeMux()
 	return &s
