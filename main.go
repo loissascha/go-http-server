@@ -1,6 +1,10 @@
 package main
 
-import "github.com/loissascha/go-http-server/server"
+import (
+	"fmt"
+
+	"github.com/loissascha/go-http-server/server"
+)
 
 // Example Implementation
 
@@ -11,6 +15,8 @@ func main() {
 		server.AddTranslationFile("de", "de_test.json"),
 		server.SetDefaultLanguage("en"),
 	)
+
+	fmt.Println("server:", s)
 
 	err := s.Serve(":44444")
 	if err != nil {
