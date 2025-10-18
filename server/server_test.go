@@ -7,6 +7,7 @@ import (
 )
 
 func TestServerSetup(t *testing.T) {
-	s := NewServer(EnableTranslations())
+	s, err := NewServer(EnableTranslations())
 	assert.Equal(t, 1, len(s.Options))
+	assert.Nil(t, err)
 }

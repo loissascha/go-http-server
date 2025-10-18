@@ -26,7 +26,7 @@ type Server struct {
 	DefaultLanguage     string
 }
 
-func NewServer(options ...ServerOption) *Server {
+func NewServer(options ...ServerOption) (*Server, error) {
 	s := Server{
 		Paths:     []ServerPath{},
 		Options:   options,
@@ -34,7 +34,7 @@ func NewServer(options ...ServerOption) *Server {
 	}
 	s.initServerOptions()
 	s.mux = http.NewServeMux()
-	return &s
+	return &s, nil
 }
 
 func (s *Server) GetMux() *http.ServeMux {
