@@ -1,6 +1,10 @@
 package server
 
-import "os"
+import (
+	"encoding/json"
+	"io"
+	"os"
+)
 
 type ServerOptionName string
 
@@ -43,18 +47,31 @@ func (s *Server) initServerOptions() {
 		case TRANSLATIONS_ENABLED:
 			s.TranslationsEnabled = true
 		case TRANSLATIONS_ADD:
-			readTranslationFile(option.Filename)
-			break
+			data := readTranslationFile(option.Filename)
+			s.Languages[option.Value] = data
 		case TRANSLATION_DEFAULT:
 			s.DefaultLanguage = option.Value
 		}
 	}
 }
 
-func readTranslationFile(filepath string) {
+func readTranslationFile(filepath string) map[string]string {
 	file, err := os.Open(filepath)
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	var data map[string]string
+	err = json.Unmarshal(content, &data)
+	if err != nil {
+		panic(err)
+	}
+
+	return data
 }
