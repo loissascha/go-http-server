@@ -9,9 +9,10 @@ import (
 type ServerOptionName string
 
 const (
-	TRANSLATIONS_ENABLED ServerOptionName = "translations_enabled"
-	TRANSLATIONS_ADD     ServerOptionName = "translations_add"
-	TRANSLATION_DEFAULT  ServerOptionName = "translation_default"
+	TRANSLATIONS_ENABLED          ServerOptionName = "translations_enabled"
+	TRANSLATIONS_ADD              ServerOptionName = "translations_add"
+	TRANSLATION_DEFAULT           ServerOptionName = "translation_default"
+	TRANSLATIONS_AUTO_DETECT_LANG ServerOptionName = "translations_auto_detect_language"
 )
 
 type ServerOption struct {
@@ -38,6 +39,12 @@ func SetDefaultLanguage(short string) ServerOption {
 	return ServerOption{
 		Name:  TRANSLATION_DEFAULT,
 		Value: short,
+	}
+}
+
+func EnableAutoDetectLanguage() ServerOption {
+	return ServerOption{
+		Name: TRANSLATIONS_AUTO_DETECT_LANG,
 	}
 }
 
