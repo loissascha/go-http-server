@@ -121,70 +121,75 @@ func (s *Server) GetMux() *http.ServeMux {
 func (s *Server) Serve(addr string) error {
 
 	for route, serverPaths := range s.Paths {
-		getM := []func(http.Handler) http.Handler{}
-		var getH *func(http.ResponseWriter, *http.Request)
-		postM := []func(http.Handler) http.Handler{}
-		var postH *func(http.ResponseWriter, *http.Request)
-		putM := []func(http.Handler) http.Handler{}
-		var putH *func(http.ResponseWriter, *http.Request)
-		deleteM := []func(http.Handler) http.Handler{}
-		var deleteH *func(http.ResponseWriter, *http.Request)
+		getChain := []func(http.Handler) http.Handler{}
+		var getHandler *func(http.ResponseWriter, *http.Request)
+		postChain := []func(http.Handler) http.Handler{}
+		var postHandler *func(http.ResponseWriter, *http.Request)
+		putChain := []func(http.Handler) http.Handler{}
+		var putHandler *func(http.ResponseWriter, *http.Request)
+		deleteChain := []func(http.Handler) http.Handler{}
+		var deleteHandler *func(http.ResponseWriter, *http.Request)
 		for _, path := range serverPaths {
 			switch path.Method {
 			case METHOD_GET:
-				if getH != nil {
+				if getHandler != nil {
 					panic("double GET route!")
 				}
 				allMiddlewares := append(path.Info.Middlewares, getRequest)
-				getM = allMiddlewares
-				getH = &path.Handler
+				getChain = allMiddlewares
+				getHandler = &path.Handler
 			case METHOD_POST:
-				if postH != nil {
+				if postHandler != nil {
 					panic("double POST route!")
 				}
 				allMiddlewares := append(path.Info.Middlewares, postRequest)
-				postM = allMiddlewares
-				postH = &path.Handler
+				postChain = allMiddlewares
+				postHandler = &path.Handler
 			case METHOD_PUT:
-				if putH != nil {
+				if putHandler != nil {
 					panic("double PUT route!")
 				}
 				allMiddlewares := append(path.Info.Middlewares, putRequest)
-				putM = allMiddlewares
-				putH = &path.Handler
+				putChain = allMiddlewares
+				putHandler = &path.Handler
 			case METHOD_DELETE:
-				if deleteH != nil {
+				if deleteHandler != nil {
 					panic("double DELETE route!")
 				}
 				allMiddlewares := append(path.Info.Middlewares, deleteRequest)
-				deleteM = allMiddlewares
-				deleteH = &path.Handler
+				deleteChain = allMiddlewares
+				deleteHandler = &path.Handler
 			default:
 				panic("method not implemented .")
 			}
 		}
 		s.mux.Handle(route, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var chain []func(http.Handler) http.Handler
-			var h func(http.ResponseWriter, *http.Request)
+			var h *func(http.ResponseWriter, *http.Request)
 
 			switch r.Method {
 			case http.MethodGet:
-				chain = getM
-				h = *getH
+				chain = getChain
+				h = getHandler
 			case http.MethodPost:
-				chain = postM
-				h = *postH
+				chain = postChain
+				h = postHandler
 			case http.MethodPut:
-				chain = putM
-				h = *putH
+				chain = putChain
+				h = putHandler
 			case http.MethodDelete:
-				chain = deleteM
-				h = *deleteH
+				chain = deleteChain
+				h = deleteHandler
 			default:
 				panic("method not implemented")
 			}
 
-			finalHandler := chainMiddleware(http.HandlerFunc(h), chain...)
+			if h == nil {
+				http.Error(w, "Not found", http.StatusNotFound)
+				return
+			}
+
+			finalHandler := chainMiddleware(http.HandlerFunc(*h), chain...)
 			finalHandler.ServeHTTP(w, r)
 		}))
 	}
