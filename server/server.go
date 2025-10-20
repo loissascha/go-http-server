@@ -135,68 +135,103 @@ func (s *Server) GetMux() *http.ServeMux {
 	return s.mux
 }
 
+type chainHandler struct {
+	chain   []func(http.Handler) http.Handler
+	handler *func(http.ResponseWriter, *http.Request)
+}
+
+type routeMethodHandlers struct {
+	get    chainHandler
+	post   chainHandler
+	put    chainHandler
+	delete chainHandler
+}
+
+// create chain and handler for every method in this server paths array (per route)
+func (s *Server) getRouteServerPathsChainAndHandler(serverPaths []ServerPath) routeMethodHandlers {
+	result := routeMethodHandlers{}
+	getChain := []func(http.Handler) http.Handler{}
+	var getHandler *func(http.ResponseWriter, *http.Request)
+	postChain := []func(http.Handler) http.Handler{}
+	var postHandler *func(http.ResponseWriter, *http.Request)
+	putChain := []func(http.Handler) http.Handler{}
+	var putHandler *func(http.ResponseWriter, *http.Request)
+	deleteChain := []func(http.Handler) http.Handler{}
+	var deleteHandler *func(http.ResponseWriter, *http.Request)
+	for _, path := range serverPaths {
+		switch path.Method {
+		case METHOD_GET:
+			if getHandler != nil {
+				panic("double GET route!")
+			}
+			allMiddlewares := append(path.Info.Middlewares, getRequest)
+			getChain = allMiddlewares
+			getHandler = &path.Handler
+		case METHOD_POST:
+			if postHandler != nil {
+				panic("double POST route!")
+			}
+			allMiddlewares := append(path.Info.Middlewares, postRequest)
+			postChain = allMiddlewares
+			postHandler = &path.Handler
+		case METHOD_PUT:
+			if putHandler != nil {
+				panic("double PUT route!")
+			}
+			allMiddlewares := append(path.Info.Middlewares, putRequest)
+			putChain = allMiddlewares
+			putHandler = &path.Handler
+		case METHOD_DELETE:
+			if deleteHandler != nil {
+				panic("double DELETE route!")
+			}
+			allMiddlewares := append(path.Info.Middlewares, deleteRequest)
+			deleteChain = allMiddlewares
+			deleteHandler = &path.Handler
+		default:
+			panic("method not implemented .")
+		}
+	}
+	result.get = chainHandler{
+		chain:   getChain,
+		handler: getHandler,
+	}
+	result.post = chainHandler{
+		chain:   postChain,
+		handler: postHandler,
+	}
+	result.put = chainHandler{
+		chain:   putChain,
+		handler: putHandler,
+	}
+	result.delete = chainHandler{
+		chain:   deleteChain,
+		handler: deleteHandler,
+	}
+	return result
+}
+
 func (s *Server) Serve(addr string) error {
 
 	for route, serverPaths := range s.Paths {
-		getChain := []func(http.Handler) http.Handler{}
-		var getHandler *func(http.ResponseWriter, *http.Request)
-		postChain := []func(http.Handler) http.Handler{}
-		var postHandler *func(http.ResponseWriter, *http.Request)
-		putChain := []func(http.Handler) http.Handler{}
-		var putHandler *func(http.ResponseWriter, *http.Request)
-		deleteChain := []func(http.Handler) http.Handler{}
-		var deleteHandler *func(http.ResponseWriter, *http.Request)
-		for _, path := range serverPaths {
-			switch path.Method {
-			case METHOD_GET:
-				if getHandler != nil {
-					panic("double GET route!")
-				}
-				allMiddlewares := append(path.Info.Middlewares, getRequest)
-				getChain = allMiddlewares
-				getHandler = &path.Handler
-			case METHOD_POST:
-				if postHandler != nil {
-					panic("double POST route!")
-				}
-				allMiddlewares := append(path.Info.Middlewares, postRequest)
-				postChain = allMiddlewares
-				postHandler = &path.Handler
-			case METHOD_PUT:
-				if putHandler != nil {
-					panic("double PUT route!")
-				}
-				allMiddlewares := append(path.Info.Middlewares, putRequest)
-				putChain = allMiddlewares
-				putHandler = &path.Handler
-			case METHOD_DELETE:
-				if deleteHandler != nil {
-					panic("double DELETE route!")
-				}
-				allMiddlewares := append(path.Info.Middlewares, deleteRequest)
-				deleteChain = allMiddlewares
-				deleteHandler = &path.Handler
-			default:
-				panic("method not implemented .")
-			}
-		}
+		data := s.getRouteServerPathsChainAndHandler(serverPaths)
 		s.mux.Handle(route, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var chain []func(http.Handler) http.Handler
 			var h *func(http.ResponseWriter, *http.Request)
 
 			switch r.Method {
 			case http.MethodGet:
-				chain = getChain
-				h = getHandler
+				chain = data.get.chain
+				h = data.get.handler
 			case http.MethodPost:
-				chain = postChain
-				h = postHandler
+				chain = data.post.chain
+				h = data.post.handler
 			case http.MethodPut:
-				chain = putChain
-				h = putHandler
+				chain = data.put.chain
+				h = data.put.handler
 			case http.MethodDelete:
-				chain = deleteChain
-				h = deleteHandler
+				chain = data.delete.chain
+				h = data.delete.handler
 			default:
 				panic("method not implemented")
 			}
