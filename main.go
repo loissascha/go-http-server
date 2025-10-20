@@ -34,7 +34,7 @@ func main() {
 
 	fmt.Println("server:", s)
 
-	err = s.Serve(":44444")
+	err = s.Serve(":4422")
 	if err != nil {
 		panic(err)
 	}
@@ -53,14 +53,14 @@ func loginGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	c, err := json.Marshal(s.GetLanguageStringMap(r))
+	c, err := json.Marshal(s.GetTMap(r))
 	if err != nil {
 		panic(err)
 	}
 	respond.JSON(w, http.StatusOK, map[string]string{
 		"status":      "ok",
-		"test_str":    s.GetLanguageString(r, "test_str"),
-		"unknown_key": s.GetLanguageString(r, "unknown_key"),
+		"test_str":    s.GetTString(r, "test_str"),
+		"unknown_key": s.GetTString(r, "unknown_key"),
 		"map":         string(c),
 	})
 }
