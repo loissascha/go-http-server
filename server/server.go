@@ -139,14 +139,23 @@ func (s *Server) Serve(addr string) error {
 				getM = allMiddlewares
 				getH = &path.Handler
 			case METHOD_POST:
+				if postH != nil {
+					panic("double POST route!")
+				}
 				allMiddlewares := append(path.Info.Middlewares, postRequest)
 				postM = allMiddlewares
 				postH = &path.Handler
 			case METHOD_PUT:
+				if putH != nil {
+					panic("double PUT route!")
+				}
 				allMiddlewares := append(path.Info.Middlewares, putRequest)
 				putM = allMiddlewares
 				putH = &path.Handler
 			case METHOD_DELETE:
+				if deleteH != nil {
+					panic("double DELETE route!")
+				}
 				allMiddlewares := append(path.Info.Middlewares, deleteRequest)
 				deleteM = allMiddlewares
 				deleteH = &path.Handler
