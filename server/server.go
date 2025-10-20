@@ -53,6 +53,14 @@ func NewServer(options ...ServerOption) (*Server, error) {
 	return &s, nil
 }
 
+func (s *Server) GetLanguages() []string {
+	res := []string{}
+	for l := range s.Languages {
+		res = append(res, l)
+	}
+	return res
+}
+
 func (s *Server) GetActiveLanguage(r *http.Request) string {
 	url := strings.TrimSpace(r.URL.Path)
 	url = strings.TrimLeft(url, "/")
