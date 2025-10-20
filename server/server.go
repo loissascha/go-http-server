@@ -124,31 +124,3 @@ func initRouteInfo() RouteInfo {
 	}
 	return routeInfo
 }
-
-func (s *Server) PUT(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
-	routeInfo := initRouteInfo()
-	for _, opt := range opts {
-		opt(&routeInfo)
-	}
-	allMiddlewares := append(routeInfo.Middlewares, putRequest)
-	s.mux.Handle(route, chainMiddleware(http.HandlerFunc(h), allMiddlewares...))
-	s.Paths = append(s.Paths, ServerPath{
-		Route:  route,
-		Method: METHOD_PUT,
-		Info:   routeInfo,
-	})
-}
-
-func (s *Server) DELETE(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
-	routeInfo := initRouteInfo()
-	for _, opt := range opts {
-		opt(&routeInfo)
-	}
-	allMiddlewares := append(routeInfo.Middlewares, deleteRequest)
-	s.mux.Handle(route, chainMiddleware(http.HandlerFunc(h), allMiddlewares...))
-	s.Paths = append(s.Paths, ServerPath{
-		Route:  route,
-		Method: METHOD_DELETE,
-		Info:   routeInfo,
-	})
-}
