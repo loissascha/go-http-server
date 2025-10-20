@@ -5,6 +5,24 @@ import (
 	"net/http"
 )
 
+// ignore translations for this route
+func (s *Server) GETI(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
+	routeInfo := initRouteInfo()
+	for _, opt := range opts {
+		opt(&routeInfo)
+	}
+
+	allMiddlewares := append(routeInfo.Middlewares, getRequest)
+
+	s.mux.Handle(route, chainMiddleware(http.HandlerFunc(h), allMiddlewares...))
+	s.Paths = append(s.Paths, ServerPath{
+		Route:  route,
+		Method: METHOD_GET,
+		Info:   routeInfo,
+	})
+}
+
+// GET route. If translations are enabled -> create redirect route and routes for each translation
 func (s *Server) GET(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {
