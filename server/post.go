@@ -42,7 +42,7 @@ func (s *Server) POST(route string, h func(w http.ResponseWriter, r *http.Reques
 			Handler: s.redirectToTranslatedUrl,
 		})
 
-		for short, _ := range s.Languages {
+		for short := range s.Languages {
 			r := fmt.Sprintf("/%s%s", short, route)
 			s.addPath(r, ServerPath{
 				Route:   r,
