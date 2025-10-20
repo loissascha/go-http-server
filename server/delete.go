@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// DELETE route (ignores translation rules)
 func (s *Server) DELETEI(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {
@@ -20,6 +21,7 @@ func (s *Server) DELETEI(route string, h func(w http.ResponseWriter, r *http.Req
 	})
 }
 
+// DELETE route
 func (s *Server) DELETE(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {

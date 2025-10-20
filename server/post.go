@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// ignore translations for this route
+// POST route (ignores translation rules)
 func (s *Server) POSTI(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {
@@ -22,7 +22,7 @@ func (s *Server) POSTI(route string, h func(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// POST route. If translations are enabled -> create redirect route and routes for each translation
+// POST route
 func (s *Server) POST(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {

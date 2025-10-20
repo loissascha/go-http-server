@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// PUT route (ignores translation rules)
 func (s *Server) PUTI(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {
@@ -21,6 +22,7 @@ func (s *Server) PUTI(route string, h func(w http.ResponseWriter, r *http.Reques
 	})
 }
 
+// PUT route
 func (s *Server) PUT(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {

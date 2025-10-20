@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// ignore translations for this route
+// GET route (ignores translation rules)
 func (s *Server) GETI(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {
@@ -22,7 +22,7 @@ func (s *Server) GETI(route string, h func(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-// GET route. If translations are enabled -> create redirect route and routes for each translation
+// GET route
 func (s *Server) GET(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
 	routeInfo := initRouteInfo()
 	for _, opt := range opts {
