@@ -62,6 +62,9 @@ func (s *Server) GetLanguages() []string {
 }
 
 func (s *Server) GetActiveLanguage(r *http.Request) string {
+	if !s.TranslationsEnabled {
+		panic("Translations not enabled!")
+	}
 	url := strings.TrimSpace(r.URL.Path)
 	url = strings.TrimLeft(url, "/")
 	urlSplit := strings.Split(url, "/")
@@ -69,7 +72,10 @@ func (s *Server) GetActiveLanguage(r *http.Request) string {
 	return activeLanguage
 }
 
-func (s *Server) GetLanguageStringMap(r *http.Request) map[string]string {
+func (s *Server) GetTMap(r *http.Request) map[string]string {
+	if !s.TranslationsEnabled {
+		panic("Translations not enabled!")
+	}
 	// get currently active language (from url)
 	url := strings.TrimSpace(r.URL.Path)
 	url = strings.TrimLeft(url, "/")
@@ -90,7 +96,10 @@ func (s *Server) GetLanguageStringMap(r *http.Request) map[string]string {
 	return l
 }
 
-func (s *Server) GetLanguageString(r *http.Request, key string) string {
+func (s *Server) GetTString(r *http.Request, key string) string {
+	if !s.TranslationsEnabled {
+		panic("Translations not enabled!")
+	}
 	// get currently active language (from url)
 	url := strings.TrimSpace(r.URL.Path)
 	url = strings.TrimLeft(url, "/")
