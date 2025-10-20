@@ -53,6 +53,7 @@ func NewServer(options ...ServerOption) (*Server, error) {
 	return &s, nil
 }
 
+// Get all languages
 func (s *Server) GetLanguages() []string {
 	res := []string{}
 	for l := range s.Languages {
@@ -61,6 +62,7 @@ func (s *Server) GetLanguages() []string {
 	return res
 }
 
+// Get currently active language
 func (s *Server) GetActiveLanguage(r *http.Request) string {
 	if !s.TranslationsEnabled {
 		panic("Translations not enabled!")
@@ -72,6 +74,7 @@ func (s *Server) GetActiveLanguage(r *http.Request) string {
 	return activeLanguage
 }
 
+// Get all translations for the currently active language
 func (s *Server) GetTMap(r *http.Request) map[string]string {
 	if !s.TranslationsEnabled {
 		panic("Translations not enabled!")
@@ -96,6 +99,7 @@ func (s *Server) GetTMap(r *http.Request) map[string]string {
 	return l
 }
 
+// Get translated value for key
 func (s *Server) GetTString(r *http.Request, key string) string {
 	if !s.TranslationsEnabled {
 		panic("Translations not enabled!")
@@ -131,6 +135,7 @@ func (s *Server) GetTString(r *http.Request, key string) string {
 	return value
 }
 
+// get the http.ServeMux in case you need to access it. Preferably s.Method should be used..
 func (s *Server) GetMux() *http.ServeMux {
 	return s.mux
 }
@@ -211,6 +216,7 @@ func (s *Server) getRouteServerPathsChainAndHandler(serverPaths []ServerPath) ro
 	return result
 }
 
+// Start the server on the given addr (or port)
 func (s *Server) Serve(addr string) error {
 
 	for route, serverPaths := range s.Paths {
