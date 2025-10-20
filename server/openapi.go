@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"slices"
 	"strings"
@@ -164,13 +163,13 @@ func (s *Server) CreateOpenAPIJson(port string) {
 		Url: "http://localhost:" + port,
 	})
 
-	operationId := 1
+	// operationId := 1
 	parameters := make(map[string]OpenAPIParam)
-	for _, path := range s.Paths {
-		routePaths := createRoutePaths(&path, fmt.Sprintf("%v", operationId))
-		openApiObj.Paths[path.Route] = routePaths
-		operationId++
-	}
+	// for _, path := range s.Paths {
+	// 	// routePaths := createRoutePaths(&path, fmt.Sprintf("%v", operationId))
+	// 	// openApiObj.Paths[path.Route] = routePaths
+	// 	operationId++
+	// }
 	openApiObj.Components["parameters"] = parameters
 
 	m, err := json.MarshalIndent(openApiObj, "", "  ")

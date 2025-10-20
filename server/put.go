@@ -12,13 +12,11 @@ func (s *Server) PUTI(route string, h func(w http.ResponseWriter, r *http.Reques
 		opt(&routeInfo)
 	}
 
-	allMiddlewares := append(routeInfo.Middlewares, putRequest)
-
-	s.mux.Handle(route, chainMiddleware(http.HandlerFunc(h), allMiddlewares...))
-	s.Paths = append(s.Paths, ServerPath{
-		Route:  route,
-		Method: METHOD_PUT,
-		Info:   routeInfo,
+	s.addPath(route, ServerPath{
+		Route:   route,
+		Method:  METHOD_PUT,
+		Info:    routeInfo,
+		Handler: h,
 	})
 }
 
@@ -29,30 +27,28 @@ func (s *Server) PUT(route string, h func(w http.ResponseWriter, r *http.Request
 		opt(&routeInfo)
 	}
 
-	allMiddlewares := append(routeInfo.Middlewares, putRequest)
-
 	if !s.TranslationsEnabled {
-		s.mux.Handle(route, chainMiddleware(http.HandlerFunc(h), allMiddlewares...))
-		s.Paths = append(s.Paths, ServerPath{
-			Route:  route,
-			Method: METHOD_PUT,
-			Info:   routeInfo,
+		s.addPath(route, ServerPath{
+			Route:   route,
+			Method:  METHOD_PUT,
+			Info:    routeInfo,
+			Handler: h,
 		})
 	} else {
-		s.mux.Handle(route, chainMiddleware(http.HandlerFunc(s.redirectToTranslatedUrl), allMiddlewares...))
-		s.Paths = append(s.Paths, ServerPath{
-			Route:  route,
-			Method: METHOD_PUT,
-			Info:   routeInfo,
+		s.addPath(route, ServerPath{
+			Route:   route,
+			Method:  METHOD_PUT,
+			Info:    routeInfo,
+			Handler: s.redirectToTranslatedUrl,
 		})
 
 		for short, _ := range s.Languages {
 			r := fmt.Sprintf("/%s%s", short, route)
-			s.mux.Handle(r, chainMiddleware(http.HandlerFunc(h), allMiddlewares...))
-			s.Paths = append(s.Paths, ServerPath{
-				Route:  r,
-				Method: METHOD_PUT,
-				Info:   routeInfo,
+			s.addPath(r, ServerPath{
+				Route:   r,
+				Method:  METHOD_PUT,
+				Info:    routeInfo,
+				Handler: h,
 			})
 		}
 	}

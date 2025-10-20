@@ -29,12 +29,27 @@ func main() {
 	s.GET("/", homeHandler)
 	s.GET("/test", homeHandler)
 
+	s.GET("/login", loginGet)
+	s.POST("/login", loginPost)
+
 	fmt.Println("server:", s)
 
 	err = s.Serve(":44444")
 	if err != nil {
 		panic(err)
 	}
+}
+
+func loginPost(w http.ResponseWriter, r *http.Request) {
+	respond.JSON(w, http.StatusOK, map[string]string{
+		"method": "POST",
+	})
+}
+
+func loginGet(w http.ResponseWriter, r *http.Request) {
+	respond.JSON(w, http.StatusOK, map[string]string{
+		"method": "GET",
+	})
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
