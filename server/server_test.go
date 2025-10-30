@@ -47,9 +47,9 @@ func TestServerSetup(t *testing.T) {
 	assert.NotContains(t, s.Paths, "fr/test")
 	assert.Nil(t, err)
 
+	// test if the registered handlers actually work
 	err = s.setupHandlers()
 	assert.Nil(t, err)
-
 	testserver := httptest.NewServer(s.mux)
 	defer testserver.Close()
 
