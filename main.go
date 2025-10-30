@@ -17,8 +17,8 @@ func main() {
 	server, err := server.NewServer(
 		server.EnableTranslations(),
 		server.EnableAutoDetectLanguage(),
-		server.AddTranslationFile("en", "en_test.json"),
-		server.AddTranslationFile("de", "de_test.json"),
+		server.AddTranslationFile("en", "en.json"),
+		server.AddTranslationFile("de", "de.json"),
 		server.SetDefaultLanguage("de"),
 	)
 	if err != nil {
