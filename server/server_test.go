@@ -29,12 +29,23 @@ func TestServerSetup(t *testing.T) {
 		AddTranslationFile("en", "en_test.json"),
 		AddTranslationFile("de", "de_test.json"),
 	)
+	s.GET("/test", testRoute)
+	s.POST("/test", testRoute)
+	s.PUT("/test", testRoute)
+	s.DELETE("/test", testRoute)
+	s.POSTI("/test/no/langs", testRoute)
 	assert.Equal(t, 5, len(s.Options))
 	assert.True(t, s.TranslationsEnabled)
 	assert.True(t, s.AutoDetectLanguageEnabled)
 	assert.Equal(t, s.DefaultLanguage, "en")
+	assert.Equal(t, 4, len(s.Paths)) // 3 routes for "/test" ("/test", "/en/test", "/de/test") and one for "/test/no/langs"
+	assert.Contains(t, s.Paths, "/test")
+	assert.Contains(t, s.Paths, "/de/test")
+	assert.Contains(t, s.Paths, "/en/test")
+	assert.NotContains(t, s.Paths, "fr/test")
 	assert.Nil(t, err)
 }
 
 func testRoute(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Test was successful", http.StatusNotAcceptable)
 }
