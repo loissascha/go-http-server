@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -71,6 +72,9 @@ func TestServerSetup(t *testing.T) {
 
 	resp, err = http.Post(testserver.URL+"/test/no/langs", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
 	assert.Nil(t, err)
+	body, err := io.ReadAll(resp.Body)
+	assert.Nil(t, err)
+	assert.Equal(t, "Test was successful\n", string(body))
 	assert.Equal(t, resp.StatusCode, http.StatusNotAcceptable)
 
 	resp, err = http.Post(testserver.URL+"/en/test/no/langs", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
