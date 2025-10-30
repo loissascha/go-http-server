@@ -216,9 +216,7 @@ func (s *Server) getRouteServerPathsChainAndHandler(serverPaths []ServerPath) ro
 	return result
 }
 
-// Start the server on the given addr (or port)
-func (s *Server) Serve(addr string) error {
-
+func (s *Server) setupHandlers() error {
 	for route, serverPaths := range s.Paths {
 		data := s.getRouteServerPathsChainAndHandler(serverPaths)
 		s.mux.Handle(route, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -251,8 +249,17 @@ func (s *Server) Serve(addr string) error {
 			finalHandler.ServeHTTP(w, r)
 		}))
 	}
+	return nil
+}
 
-	err := http.ListenAndServe(addr, s.mux)
+// Start the server on the given addr (or port)
+func (s *Server) Serve(addr string) error {
+	err := s.setupHandlers()
+	if err != nil {
+		return err
+	}
+
+	err = http.ListenAndServe(addr, s.mux)
 	return err
 }
 
