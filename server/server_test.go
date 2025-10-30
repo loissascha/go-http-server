@@ -1,7 +1,9 @@
 package server
 
 import (
+	"bytes"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -44,6 +46,36 @@ func TestServerSetup(t *testing.T) {
 	assert.Contains(t, s.Paths, "/en/test")
 	assert.NotContains(t, s.Paths, "fr/test")
 	assert.Nil(t, err)
+
+	err = s.setupHandlers()
+	assert.Nil(t, err)
+
+	testserver := httptest.NewServer(s.mux)
+	defer testserver.Close()
+
+	resp, err := http.Post(testserver.URL+"/test", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
+	assert.Nil(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotAcceptable)
+
+	resp, err = http.Post(testserver.URL+"/en/test", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
+	assert.Nil(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotAcceptable)
+
+	resp, err = http.Post(testserver.URL+"/de/test", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
+	assert.Nil(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotAcceptable)
+
+	resp, err = http.Post(testserver.URL+"/fr/test", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
+	assert.Nil(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotFound)
+
+	resp, err = http.Post(testserver.URL+"/test/no/langs", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
+	assert.Nil(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotAcceptable)
+
+	resp, err = http.Post(testserver.URL+"/en/test/no/langs", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
+	assert.Nil(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotFound)
 }
 
 func testRoute(w http.ResponseWriter, r *http.Request) {
