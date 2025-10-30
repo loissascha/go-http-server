@@ -54,7 +54,15 @@ func TestServerSetup(t *testing.T) {
 	testserver := httptest.NewServer(s.mux)
 	defer testserver.Close()
 
-	resp, err := http.Post(testserver.URL+"/test", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
+	resp, err := http.Get(testserver.URL + "/test")
+	assert.Nil(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotAcceptable)
+
+	resp, err = http.Get(testserver.URL + "/en/test")
+	assert.Nil(t, err)
+	assert.Equal(t, resp.StatusCode, http.StatusNotAcceptable)
+
+	resp, err = http.Post(testserver.URL+"/test", "applicaton/json", bytes.NewBuffer([]byte("{'key':'value'}")))
 	assert.Nil(t, err)
 	assert.Equal(t, resp.StatusCode, http.StatusNotAcceptable)
 
