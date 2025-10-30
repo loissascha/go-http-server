@@ -51,3 +51,11 @@ func WithMiddlewares(mws ...func(http.Handler) http.Handler) RouteOption {
 		ri.Middlewares = append(ri.Middlewares, mws...)
 	}
 }
+
+func getRouteInfos(opts ...RouteOption) RouteInfo {
+	routeInfo := initRouteInfo()
+	for _, opt := range opts {
+		opt(&routeInfo)
+	}
+	return routeInfo
+}

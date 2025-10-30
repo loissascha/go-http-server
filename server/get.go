@@ -7,10 +7,7 @@ import (
 
 // GET route (ignores translation rules)
 func (s *Server) GETI(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
-	routeInfo := initRouteInfo()
-	for _, opt := range opts {
-		opt(&routeInfo)
-	}
+	routeInfo := getRouteInfos(opts...)
 
 	s.addPath(route, ServerPath{
 		Route:   route,
@@ -22,34 +19,26 @@ func (s *Server) GETI(route string, h func(w http.ResponseWriter, r *http.Reques
 
 // GET route
 func (s *Server) GET(route string, h func(w http.ResponseWriter, r *http.Request), opts ...RouteOption) {
-	routeInfo := initRouteInfo()
-	for _, opt := range opts {
-		opt(&routeInfo)
+	if !s.TranslationsEnabled {
+		s.GETI(route, h, opts...)
+		return
 	}
 
-	if !s.TranslationsEnabled {
-		s.addPath(route, ServerPath{
-			Route:   route,
+	routeInfo := getRouteInfos(opts...)
+	s.addPath(route, ServerPath{
+		Route:   route,
+		Method:  METHOD_GET,
+		Info:    routeInfo,
+		Handler: s.redirectToTranslatedUrl,
+	})
+
+	for short := range s.Languages {
+		r := fmt.Sprintf("/%s%s", short, route)
+		s.addPath(r, ServerPath{
+			Route:   r,
 			Method:  METHOD_GET,
 			Info:    routeInfo,
 			Handler: h,
 		})
-	} else {
-		s.addPath(route, ServerPath{
-			Route:   route,
-			Method:  METHOD_GET,
-			Info:    routeInfo,
-			Handler: s.redirectToTranslatedUrl,
-		})
-
-		for short := range s.Languages {
-			r := fmt.Sprintf("/%s%s", short, route)
-			s.addPath(r, ServerPath{
-				Route:   r,
-				Method:  METHOD_GET,
-				Info:    routeInfo,
-				Handler: h,
-			})
-		}
 	}
 }
