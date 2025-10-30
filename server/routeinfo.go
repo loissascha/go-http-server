@@ -14,6 +14,16 @@ type RouteInfo struct {
 	Responses   map[string]OpenAPIResponse
 }
 
+func newRouteInfo() RouteInfo {
+	routeInfo := RouteInfo{
+		Middlewares: []func(http.Handler) http.Handler{},
+		Tags:        []string{},
+		Params:      []OpenAPIParam{},
+		Responses:   map[string]OpenAPIResponse{},
+	}
+	return routeInfo
+}
+
 type RouteOption func(*RouteInfo)
 
 func WithResponse(responseCode int, response OpenAPIResponse) RouteOption {
@@ -53,7 +63,7 @@ func WithMiddlewares(mws ...func(http.Handler) http.Handler) RouteOption {
 }
 
 func getRouteInfos(opts ...RouteOption) RouteInfo {
-	routeInfo := initRouteInfo()
+	routeInfo := newRouteInfo()
 	for _, opt := range opts {
 		opt(&routeInfo)
 	}
