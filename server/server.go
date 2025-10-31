@@ -266,13 +266,3 @@ func (s *Server) Serve(addr string) error {
 func (s *Server) Handle(route string, h func(w http.ResponseWriter, r *http.Request), middlewares ...func(http.Handler) http.Handler) {
 	s.mux.Handle(route, chainMiddleware(http.HandlerFunc(h), middlewares...))
 }
-
-func initRouteInfo() RouteInfo {
-	routeInfo := RouteInfo{
-		Middlewares: []func(http.Handler) http.Handler{},
-		Tags:        []string{},
-		Params:      []OpenAPIParam{},
-		Responses:   map[string]OpenAPIResponse{},
-	}
-	return routeInfo
-}
