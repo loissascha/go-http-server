@@ -1,3 +1,9 @@
+export interface loginInput {
+    username: string;
+    password: string;
+}
 export interface loginResult {
-  method: string;
+    method: string;
+    success: boolean;
+    jwt: string;
 }

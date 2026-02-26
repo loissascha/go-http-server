@@ -11,8 +11,15 @@ import (
 
 // Example Implementation
 
+type loginInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type loginResult struct {
-	Method string `json:"method"`
+	Method  string `json:"method"`
+	Success bool   `json:"success"`
+	Jwt     string `json:"jwt"`
 }
 
 var s *server.Server
@@ -34,8 +41,8 @@ func main() {
 	s.GET("/", homeHandler)
 	s.GET("/test", homeHandler)
 
-	s.GET("/login", loginGet, server.WithExportType[loginResult]())
-	s.POST("/login", loginPost)
+	s.GET("/login", loginGet)
+	s.POST("/login", loginPost, server.WithExportType[loginInput](), server.WithExportType[loginResult]())
 
 	fmt.Println("server:", s)
 
@@ -47,7 +54,9 @@ func main() {
 
 func loginPost(w http.ResponseWriter, r *http.Request) {
 	res := loginResult{
-		Method: "POST",
+		Method:  "POST",
+		Success: true,
+		Jwt:     "TEST",
 	}
 	respond.JSON(w, http.StatusOK, res)
 }
