@@ -29,6 +29,7 @@ type Server struct {
 	AutoDetectLanguageEnabled bool
 	Languages                 map[string]map[string]string
 	DefaultLanguage           string
+	ExportTypesLocation       string
 }
 
 func (s *Server) addPath(route string, p ServerPath) {
@@ -44,9 +45,10 @@ func (s *Server) addPath(route string, p ServerPath) {
 
 func NewServer(options ...ServerOption) (*Server, error) {
 	s := Server{
-		Paths:     map[string][]ServerPath{},
-		Options:   options,
-		Languages: map[string]map[string]string{},
+		Paths:               map[string][]ServerPath{},
+		Options:             options,
+		Languages:           map[string]map[string]string{},
+		ExportTypesLocation: "./export.ts",
 	}
 	s.initServerOptions()
 	s.mux = http.NewServeMux()
@@ -255,6 +257,11 @@ func (s *Server) setupHandlers() error {
 // Start the server on the given addr (or port)
 func (s *Server) Serve(addr string) error {
 	err := s.setupHandlers()
+	if err != nil {
+		return err
+	}
+
+	err = s.exportInterfacesToTS()
 	if err != nil {
 		return err
 	}

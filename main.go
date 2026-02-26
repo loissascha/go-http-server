@@ -11,26 +11,38 @@ import (
 
 // Example Implementation
 
+type loginInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type loginResult struct {
+	Method  string `json:"method"`
+	Success bool   `json:"success"`
+	Jwt     string `json:"jwt"`
+}
+
 var s *server.Server
 
 func main() {
-	server, err := server.NewServer(
+	se, err := server.NewServer(
 		server.EnableTranslations(),
 		server.EnableAutoDetectLanguage(),
 		server.AddTranslationFile("en", "en.json"),
 		server.AddTranslationFile("de", "de.json"),
 		server.SetDefaultLanguage("de"),
+		server.SetExportTypesLocation("./out/types.ts"),
 	)
 	if err != nil {
 		panic(err)
 	}
-	s = server
+	s = se
 
 	s.GET("/", homeHandler)
 	s.GET("/test", homeHandler)
 
 	s.GET("/login", loginGet)
-	s.POST("/login", loginPost)
+	s.POST("/login", loginPost, server.WithExportType[loginInput](), server.WithExportType[loginResult]())
 
 	fmt.Println("server:", s)
 
@@ -41,9 +53,12 @@ func main() {
 }
 
 func loginPost(w http.ResponseWriter, r *http.Request) {
-	respond.JSON(w, http.StatusOK, map[string]string{
-		"method": "POST",
-	})
+	res := loginResult{
+		Method:  "POST",
+		Success: true,
+		Jwt:     "TEST",
+	}
+	respond.JSON(w, http.StatusOK, res)
 }
 
 func loginGet(w http.ResponseWriter, r *http.Request) {
