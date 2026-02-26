@@ -45,9 +45,10 @@ func main() {
 }
 
 func loginPost(w http.ResponseWriter, r *http.Request) {
-	respond.JSON(w, http.StatusOK, map[string]string{
-		"method": "POST",
-	})
+	res := loginResult{
+		Method: "POST",
+	}
+	respond.JSON(w, http.StatusOK, res)
 }
 
 func loginGet(w http.ResponseWriter, r *http.Request) {
