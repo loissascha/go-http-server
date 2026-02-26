@@ -259,6 +259,11 @@ func (s *Server) Serve(addr string) error {
 		return err
 	}
 
+	err = s.setupExportInterfaces()
+	if err != nil {
+		return err
+	}
+
 	err = http.ListenAndServe(addr, s.mux)
 	return err
 }
