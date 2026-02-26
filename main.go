@@ -24,6 +24,7 @@ func main() {
 		server.AddTranslationFile("en", "en.json"),
 		server.AddTranslationFile("de", "de.json"),
 		server.SetDefaultLanguage("de"),
+		server.SetExportTypesLocation("./out/types.ts"),
 	)
 	if err != nil {
 		panic(err)

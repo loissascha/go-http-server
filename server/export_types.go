@@ -20,7 +20,7 @@ type StructFieldInfo struct {
 	TagRawJSON string
 }
 
-func (s *Server) setupExportInterfaces() error {
+func (s *Server) exportInterfacesToTS() error {
 	allInterfaces := ""
 
 	exportedTypes := []reflect.Type{}
@@ -39,7 +39,7 @@ func (s *Server) setupExportInterfaces() error {
 
 	fmt.Println(allInterfaces)
 
-	os.WriteFile("./export.ts", []byte(allInterfaces), os.ModePerm)
+	os.WriteFile(s.ExportTypesLocation, []byte(allInterfaces), os.ModePerm)
 	return nil
 }
 

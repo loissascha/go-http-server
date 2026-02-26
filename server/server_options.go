@@ -13,6 +13,7 @@ const (
 	TRANSLATIONS_ADD              ServerOptionName = "translations_add"
 	TRANSLATION_DEFAULT           ServerOptionName = "translation_default"
 	TRANSLATIONS_AUTO_DETECT_LANG ServerOptionName = "translations_auto_detect_language"
+	EXPORT_TYPE_LOCATION          ServerOptionName = "exprt_type_location"
 )
 
 type ServerOption struct {
@@ -48,6 +49,13 @@ func EnableAutoDetectLanguage() ServerOption {
 	}
 }
 
+func SetExportTypesLocation(path string) ServerOption {
+	return ServerOption{
+		Name:  EXPORT_TYPE_LOCATION,
+		Value: path,
+	}
+}
+
 func (s *Server) initServerOptions() {
 	for _, option := range s.Options {
 		switch option.Name {
@@ -60,6 +68,8 @@ func (s *Server) initServerOptions() {
 			s.DefaultLanguage = option.Value
 		case TRANSLATIONS_AUTO_DETECT_LANG:
 			s.AutoDetectLanguageEnabled = true
+		case EXPORT_TYPE_LOCATION:
+			s.ExportTypesLocation = option.Value
 		}
 	}
 }
