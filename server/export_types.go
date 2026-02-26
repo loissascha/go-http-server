@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"slices"
@@ -27,7 +26,6 @@ func (s *Server) exportInterfacesToTS() error {
 
 	for _, paths := range s.Paths {
 		for _, p := range paths {
-			fmt.Println("Path: ", p)
 			for _, t := range p.Info.ExportTypes {
 				if !slices.Contains(exportedTypes, t) {
 					exportedTypes = append(exportedTypes, t)
@@ -37,15 +35,14 @@ func (s *Server) exportInterfacesToTS() error {
 		}
 	}
 
-	fmt.Println(allInterfaces)
-
-	os.WriteFile(s.ExportTypesLocation, []byte(allInterfaces), os.ModePerm)
+	if allInterfaces != "" {
+		os.WriteFile(s.ExportTypesLocation, []byte(allInterfaces), os.ModePerm)
+	}
 	return nil
 }
 
 func createTSInterface(t reflect.Type) string {
 	infos := parseStructFields(t)
-	fmt.Printf("Struct Fields result: %+v\n", infos)
 
 	var b strings.Builder
 	b.WriteString("export interface ")
