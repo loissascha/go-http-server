@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 )
 
 type RouteInfo struct {
@@ -12,6 +13,7 @@ type RouteInfo struct {
 	Middlewares []func(http.Handler) http.Handler
 	Params      []OpenAPIParam
 	Responses   map[string]OpenAPIResponse
+	ExportTypes []reflect.Type
 }
 
 func newRouteInfo() RouteInfo {
@@ -20,6 +22,7 @@ func newRouteInfo() RouteInfo {
 		Tags:        []string{},
 		Params:      []OpenAPIParam{},
 		Responses:   map[string]OpenAPIResponse{},
+		ExportTypes: []reflect.Type{},
 	}
 	return routeInfo
 }
@@ -59,6 +62,15 @@ func WithParams(params ...OpenAPIParam) RouteOption {
 func WithMiddlewares(mws ...func(http.Handler) http.Handler) RouteOption {
 	return func(ri *RouteInfo) {
 		ri.Middlewares = append(ri.Middlewares, mws...)
+	}
+}
+
+func WithExportType[T any]() RouteOption {
+	return func(ri *RouteInfo) {
+		t := reflect.TypeOf((*T)(nil)).Elem()
+		if t.Kind() == reflect.Struct {
+			ri.ExportTypes = append(ri.ExportTypes, t)
+		}
 	}
 }
 

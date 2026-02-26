@@ -11,10 +11,14 @@ import (
 
 // Example Implementation
 
+type loginResult struct {
+	Method string `json:"method"`
+}
+
 var s *server.Server
 
 func main() {
-	server, err := server.NewServer(
+	se, err := server.NewServer(
 		server.EnableTranslations(),
 		server.EnableAutoDetectLanguage(),
 		server.AddTranslationFile("en", "en.json"),
@@ -24,12 +28,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s = server
+	s = se
 
 	s.GET("/", homeHandler)
 	s.GET("/test", homeHandler)
 
-	s.GET("/login", loginGet)
+	s.GET("/login", loginGet, server.WithExportType[loginResult]())
 	s.POST("/login", loginPost)
 
 	fmt.Println("server:", s)
