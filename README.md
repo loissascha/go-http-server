@@ -19,6 +19,46 @@ A lightweight and flexible HTTP server framework for Go, designed to simplify bu
 go get github.com/loissascha/go-http-server
 ```
 
+## Environment Variables
+
+This server currently uses environment variables for runtime environment behavior and CORS origin validation.
+
+| Variable | Type | Default | Description |
+| --- | --- | --- | --- |
+| `APP_ENV` | enum-like string (`production` or non-production) | empty (treated as non-production) | Controls strictness for CORS behavior. Only the exact value `production` enables strict production checks. |
+| `ALLOWED_ORIGINS` | comma-separated string, or `*` | if `APP_ENV != production`: built-in localhost allowlist; if `APP_ENV == production`: required | List of allowed browser origins for CORS (for example `https://app.example.com,https://admin.example.com`). |
+
+### `APP_ENV`
+
+- Use `APP_ENV=production` in production deployments.
+- Any other value (or not setting it) is treated as non-production.
+- In non-production, localhost origins are allowed automatically as a developer convenience.
+
+### `ALLOWED_ORIGINS`
+
+- Accepts a comma-separated list of origins (spaces are allowed and trimmed).
+- Example: `ALLOWED_ORIGINS=https://app.example.com, https://admin.example.com`
+- You can set `ALLOWED_ORIGINS=*` to allow any origin (use with care).
+- In production (`APP_ENV=production`), this should always be set to explicit trusted origins.
+- If `APP_ENV=production` and `ALLOWED_ORIGINS` is missing or invalid, the server fails fast during startup.
+
+### Recommended `.env` examples
+
+Development:
+
+```env
+APP_ENV=development
+# Optional in development; localhost origins are auto-allowed when unset
+# ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Production:
+
+```env
+APP_ENV=production
+ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com
+```
+
 ## Basic Usage
 
 ```go
