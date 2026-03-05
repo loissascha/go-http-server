@@ -239,7 +239,7 @@ func (s *Server) setupHandlers() error {
 				chain = data.delete.chain
 				h = data.delete.handler
 			default:
-				panic("method not implemented")
+				panic("method '" + r.Method + "' not implemented")
 			}
 
 			if h == nil {
