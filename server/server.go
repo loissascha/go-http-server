@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -222,9 +223,14 @@ func (s *Server) setupHandlers() error {
 	for route, serverPaths := range s.Paths {
 		data := s.getRouteServerPathsChainAndHandler(serverPaths)
 		s.mux.Handle(route, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodOptions {
+				finalHandler := chainMiddleware(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+				finalHandler.ServeHTTP(w, r)
+				return
+			}
+
 			var chain []func(http.Handler) http.Handler
 			var h *func(http.ResponseWriter, *http.Request)
-
 			switch r.Method {
 			case http.MethodGet:
 				chain = data.get.chain
@@ -239,7 +245,8 @@ func (s *Server) setupHandlers() error {
 				chain = data.delete.chain
 				h = data.delete.handler
 			default:
-				panic("method '" + r.Method + "' not implemented")
+				http.Error(w, fmt.Sprintf("Method %s Not Allowed", r.Method), http.StatusMethodNotAllowed)
+				return
 			}
 
 			if h == nil {
