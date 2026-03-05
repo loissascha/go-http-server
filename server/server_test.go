@@ -93,3 +93,47 @@ func TestServerSetup(t *testing.T) {
 func testRoute(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Test was successful", http.StatusNotAcceptable)
 }
+
+func TestOPTIONSPreflightOnPostRouteReturnsNoContentAndCORSHeaders(t *testing.T) {
+	t.Setenv("ALLOWED_ORIGINS", "*")
+	t.Setenv("APP_ENV", "development")
+	s, err := NewServer()
+	assert.NoError(t, err)
+	s.POSTI("/auth/register", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	})
+	err = s.setupHandlers()
+	assert.NoError(t, err)
+	ts := httptest.NewServer(s.mux)
+	defer ts.Close()
+	req, err := http.NewRequest(http.MethodOptions, ts.URL+"/auth/register", nil)
+	assert.NoError(t, err)
+	req.Header.Set("Origin", "http://localhost:5173")
+	req.Header.Set("Access-Control-Request-Method", "POST")
+	req.Header.Set("Access-Control-Request-Headers", "Content-Type")
+	resp, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+	assert.Equal(t, "http://localhost:5173", resp.Header.Get("Access-Control-Allow-Origin"))
+	assert.Contains(t, resp.Header.Get("Access-Control-Allow-Methods"), "POST")
+	assert.Contains(t, resp.Header.Get("Access-Control-Allow-Headers"), "Content-Type")
+}
+
+func TestUnsupportedMethodReturnsMethodNotAllowed(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+	s.GETI("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	err = s.setupHandlers()
+	assert.NoError(t, err)
+	ts := httptest.NewServer(s.mux)
+	defer ts.Close()
+	req, err := http.NewRequest(http.MethodPatch, ts.URL+"/health", nil)
+	assert.NoError(t, err)
+	resp, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
+}
