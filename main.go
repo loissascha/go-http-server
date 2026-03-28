@@ -23,6 +23,7 @@ type loginResult struct {
 }
 
 var s *server.Server
+var appEnv = "development"
 
 func main() {
 	se, err := server.NewServer(
@@ -32,6 +33,7 @@ func main() {
 		server.AddTranslationFile("de", "de.json"),
 		server.SetDefaultLanguage("de"),
 		server.SetExportTypesLocation("./out/types.ts"),
+		server.EnableExportTypes(appEnv == "development"), // enable typescript file generation only in dev environment
 	)
 	if err != nil {
 		panic(err)

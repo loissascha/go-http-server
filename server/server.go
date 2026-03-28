@@ -30,6 +30,7 @@ type Server struct {
 	AutoDetectLanguageEnabled bool
 	Languages                 map[string]map[string]string
 	DefaultLanguage           string
+	ExportTypes               bool
 	ExportTypesLocation       string
 }
 
@@ -268,9 +269,11 @@ func (s *Server) Serve(addr string) error {
 		return err
 	}
 
-	err = s.exportInterfacesToTS()
-	if err != nil {
-		return err
+	if s.ExportTypes {
+		err = s.exportInterfacesToTS()
+		if err != nil {
+			return err
+		}
 	}
 
 	err = http.ListenAndServe(addr, s.mux)
