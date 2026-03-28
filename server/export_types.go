@@ -29,10 +29,25 @@ func (s *Server) exportInterfacesToTS() error {
 			for _, t := range p.Info.ExportTypes {
 				if !slices.Contains(exportedTypes, t) {
 					exportedTypes = append(exportedTypes, t)
-					allInterfaces += createTSInterface(t)
 				}
 			}
 		}
+	}
+
+	slices.SortFunc(exportedTypes, func(a reflect.Type, b reflect.Type) int {
+		aName := a.Name()
+		bName := b.Name()
+		if aName < bName {
+			return -1
+		}
+		if aName > bName {
+			return 1
+		}
+		return 0
+	})
+
+	for _, t := range exportedTypes {
+		allInterfaces += createTSInterface(t)
 	}
 
 	if allInterfaces != "" {
