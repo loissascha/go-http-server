@@ -157,6 +157,13 @@ if err := <-errCh; err != nil {
 }
 ```
 
+## Other Server Lifecycle APIs
+
+- `Serve(addr)` starts plain HTTP
+- `ServeTLS(addr, certFile, keyFile)` starts HTTPS using certificate and key files
+- `Shutdown(ctx)` gracefully stops the server and waits for in-flight requests until the context expires
+- `Close()` stops the server immediately without waiting for in-flight requests
+
 ## Translation Files
 
 Create JSON files for translations (e.g., `en.json`):

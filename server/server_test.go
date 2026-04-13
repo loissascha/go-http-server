@@ -3,10 +3,18 @@ package server
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -190,7 +198,7 @@ func TestServeReturnsNilAfterShutdown(t *testing.T) {
 		errCh <- s.Serve(addr)
 	}()
 
-	waitForServer(t, addr)
+	waitForServer(t, addr, "http", "/health", nil)
 
 	err = s.Shutdown(context.Background())
 	assert.NoError(t, err)
@@ -213,7 +221,7 @@ func TestServeReturnsErrorWhenAlreadyRunning(t *testing.T) {
 		errCh <- s.Serve(addr)
 	}()
 
-	waitForServer(t, addr)
+	waitForServer(t, addr, "http", "/health", nil)
 
 	err = s.Serve(addr)
 	assert.Error(t, err)
@@ -227,6 +235,9 @@ func TestServeReturnsErrorWhenAlreadyRunning(t *testing.T) {
 func TestShutdownWaitsForInFlightRequest(t *testing.T) {
 	s, err := NewServer()
 	assert.NoError(t, err)
+	s.GETI("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 
 	started := make(chan struct{}, 1)
 	finished := make(chan struct{}, 1)
@@ -243,7 +254,7 @@ func TestShutdownWaitsForInFlightRequest(t *testing.T) {
 		errCh <- s.Serve(addr)
 	}()
 
-	waitForServer(t, addr)
+	waitForServer(t, addr, "http", "/health", nil)
 
 	respCh := make(chan error, 1)
 	go func() {
@@ -277,6 +288,104 @@ func TestShutdownWaitsForInFlightRequest(t *testing.T) {
 	assert.NoError(t, <-errCh)
 }
 
+func TestCloseBeforeServeReturnsNil(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+
+	err = s.Close()
+	assert.NoError(t, err)
+}
+
+func TestServeReturnsNilAfterClose(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+	s.GETI("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	addr := getFreeAddr(t)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.Serve(addr)
+	}()
+
+	waitForServer(t, addr, "http", "/health", nil)
+
+	err = s.Close()
+	assert.NoError(t, err)
+	assert.NoError(t, <-errCh)
+
+	_, err = http.Get("http://" + addr + "/health")
+	assert.Error(t, err)
+}
+
+func TestServeTLSReturnsNilAfterShutdown(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+	s.GETI("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	certFile, keyFile := writeTestCertificateFiles(t)
+	addr := getFreeAddr(t)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.ServeTLS(addr, certFile, keyFile)
+	}()
+
+	tlsClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+		Timeout: time.Second,
+	}
+	defer tlsClient.CloseIdleConnections()
+
+	waitForServer(t, addr, "https", "/health", tlsClient)
+
+	resp, err := tlsClient.Get("https://" + addr + "/health")
+	assert.NoError(t, err)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	err = s.Shutdown(context.Background())
+	assert.NoError(t, err)
+	assert.NoError(t, <-errCh)
+}
+
+func TestServeTLSReturnsErrorWhenAlreadyRunning(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+	s.GETI("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	certFile, keyFile := writeTestCertificateFiles(t)
+	addr := getFreeAddr(t)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.ServeTLS(addr, certFile, keyFile)
+	}()
+
+	tlsClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+		Timeout: time.Second,
+	}
+	defer tlsClient.CloseIdleConnections()
+
+	waitForServer(t, addr, "https", "/health", tlsClient)
+
+	err = s.ServeTLS(addr, certFile, keyFile)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "server already running")
+
+	err = s.Close()
+	assert.NoError(t, err)
+	assert.NoError(t, <-errCh)
+}
+
 func getFreeAddr(t *testing.T) string {
 	t.Helper()
 
@@ -289,13 +398,16 @@ func getFreeAddr(t *testing.T) string {
 	return listener.Addr().String()
 }
 
-func waitForServer(t *testing.T, addr string) {
+func waitForServer(t *testing.T, addr, scheme, path string, client *http.Client) {
 	t.Helper()
 
-	client := &http.Client{Timeout: 100 * time.Millisecond}
+	if client == nil {
+		client = &http.Client{Timeout: 100 * time.Millisecond}
+	}
+
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
-		resp, err := client.Get("http://" + addr + "/health")
+		resp, err := client.Get(scheme + "://" + addr + path)
 		if err == nil {
 			resp.Body.Close()
 			return
@@ -304,4 +416,56 @@ func waitForServer(t *testing.T, addr string) {
 	}
 
 	t.Fatalf("server at %s did not start in time", addr)
+}
+
+func writeTestCertificateFiles(t *testing.T) (string, string) {
+	t.Helper()
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("failed to generate test private key: %v", err)
+	}
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			CommonName: "127.0.0.1",
+		},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		DNSNames:              []string{"localhost"},
+		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		t.Fatalf("failed to create test certificate: %v", err)
+	}
+
+	certFile, err := os.CreateTemp(t.TempDir(), "cert-*.pem")
+	if err != nil {
+		t.Fatalf("failed to create cert file: %v", err)
+	}
+	defer certFile.Close()
+
+	keyFile, err := os.CreateTemp(t.TempDir(), "key-*.pem")
+	if err != nil {
+		t.Fatalf("failed to create key file: %v", err)
+	}
+	defer keyFile.Close()
+
+	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+	if err != nil {
+		t.Fatalf("failed to write cert file: %v", err)
+	}
+
+	err = pem.Encode(keyFile, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
+	if err != nil {
+		t.Fatalf("failed to write key file: %v", err)
+	}
+
+	return certFile.Name(), keyFile.Name()
 }

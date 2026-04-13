@@ -282,19 +282,18 @@ func (s *Server) setupHandlers() error {
 	return nil
 }
 
-// Start the server on the given addr (or port)
-func (s *Server) Serve(addr string) error {
+func (s *Server) prepareHTTPServer(addr string) (*http.Server, error) {
 	s.mu.Lock()
 	if s.httpServer != nil {
 		s.mu.Unlock()
-		return fmt.Errorf("server already running")
+		return nil, fmt.Errorf("server already running")
 	}
 
 	if !s.handlersSetup {
 		err := s.setupHandlers()
 		if err != nil {
 			s.mu.Unlock()
-			return err
+			return nil, err
 		}
 		s.handlersSetup = true
 	}
@@ -303,7 +302,7 @@ func (s *Server) Serve(addr string) error {
 		err := s.exportInterfacesToTS()
 		if err != nil {
 			s.mu.Unlock()
-			return err
+			return nil, err
 		}
 	}
 
@@ -319,8 +318,10 @@ func (s *Server) Serve(addr string) error {
 	s.httpServer = httpServer
 	s.mu.Unlock()
 
-	err := httpServer.ListenAndServe()
+	return httpServer, nil
+}
 
+func (s *Server) finishHTTPServerRun(httpServer *http.Server, err error) error {
 	s.mu.Lock()
 	if s.httpServer == httpServer {
 		s.httpServer = nil
@@ -332,6 +333,28 @@ func (s *Server) Serve(addr string) error {
 	}
 
 	return err
+}
+
+// Start the server on the given addr (or port)
+func (s *Server) Serve(addr string) error {
+	httpServer, err := s.prepareHTTPServer(addr)
+	if err != nil {
+		return err
+	}
+
+	err = httpServer.ListenAndServe()
+	return s.finishHTTPServerRun(httpServer, err)
+}
+
+// Start the server with HTTPS on the given addr (or port)
+func (s *Server) ServeTLS(addr, certFile, keyFile string) error {
+	httpServer, err := s.prepareHTTPServer(addr)
+	if err != nil {
+		return err
+	}
+
+	err = httpServer.ListenAndServeTLS(certFile, keyFile)
+	return s.finishHTTPServerRun(httpServer, err)
 }
 
 func (s *Server) Shutdown(ctx context.Context) error {
@@ -350,6 +373,30 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.httpServer = nil
 	}
 	s.mu.Unlock()
+
+	return err
+}
+
+func (s *Server) Close() error {
+	s.mu.Lock()
+	httpServer := s.httpServer
+	s.mu.Unlock()
+
+	if httpServer == nil {
+		return nil
+	}
+
+	err := httpServer.Close()
+
+	s.mu.Lock()
+	if s.httpServer == httpServer {
+		s.httpServer = nil
+	}
+	s.mu.Unlock()
+
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
 
 	return err
 }
