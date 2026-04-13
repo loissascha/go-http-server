@@ -1,9 +1,12 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -24,9 +27,12 @@ type ServerPath struct {
 }
 
 type Server struct {
+	mu                        sync.Mutex
 	mux                       *http.ServeMux
 	Paths                     map[string][]ServerPath
 	Options                   []ServerOption
+	httpServer                *http.Server
+	handlersSetup             bool
 	ReadHeaderTimeout         time.Duration
 	ReadTimeout               time.Duration
 	WriteTimeout              time.Duration
@@ -278,14 +284,25 @@ func (s *Server) setupHandlers() error {
 
 // Start the server on the given addr (or port)
 func (s *Server) Serve(addr string) error {
-	err := s.setupHandlers()
-	if err != nil {
-		return err
+	s.mu.Lock()
+	if s.httpServer != nil {
+		s.mu.Unlock()
+		return fmt.Errorf("server already running")
+	}
+
+	if !s.handlersSetup {
+		err := s.setupHandlers()
+		if err != nil {
+			s.mu.Unlock()
+			return err
+		}
+		s.handlersSetup = true
 	}
 
 	if s.ExportTypes {
-		err = s.exportInterfacesToTS()
+		err := s.exportInterfacesToTS()
 		if err != nil {
+			s.mu.Unlock()
 			return err
 		}
 	}
@@ -299,8 +316,41 @@ func (s *Server) Serve(addr string) error {
 		IdleTimeout:       s.IdleTimeout,
 		MaxHeaderBytes:    s.MaxHeaderBytes,
 	}
+	s.httpServer = httpServer
+	s.mu.Unlock()
 
-	err = httpServer.ListenAndServe()
+	err := httpServer.ListenAndServe()
+
+	s.mu.Lock()
+	if s.httpServer == httpServer {
+		s.httpServer = nil
+	}
+	s.mu.Unlock()
+
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+
+	return err
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.mu.Lock()
+	httpServer := s.httpServer
+	s.mu.Unlock()
+
+	if httpServer == nil {
+		return nil
+	}
+
+	err := httpServer.Shutdown(ctx)
+
+	s.mu.Lock()
+	if s.httpServer == httpServer {
+		s.httpServer = nil
+	}
+	s.mu.Unlock()
+
 	return err
 }
 

@@ -2,7 +2,9 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -165,4 +167,141 @@ func TestInvalidServerTimeoutOptionReturnsError(t *testing.T) {
 	assert.Nil(t, s)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid read timeout")
+}
+
+func TestShutdownBeforeServeReturnsNil(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+
+	err = s.Shutdown(context.Background())
+	assert.NoError(t, err)
+}
+
+func TestServeReturnsNilAfterShutdown(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+	s.GETI("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	addr := getFreeAddr(t)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.Serve(addr)
+	}()
+
+	waitForServer(t, addr)
+
+	err = s.Shutdown(context.Background())
+	assert.NoError(t, err)
+	assert.NoError(t, <-errCh)
+
+	_, err = http.Get("http://" + addr + "/health")
+	assert.Error(t, err)
+}
+
+func TestServeReturnsErrorWhenAlreadyRunning(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+	s.GETI("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	addr := getFreeAddr(t)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.Serve(addr)
+	}()
+
+	waitForServer(t, addr)
+
+	err = s.Serve(addr)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "server already running")
+
+	err = s.Shutdown(context.Background())
+	assert.NoError(t, err)
+	assert.NoError(t, <-errCh)
+}
+
+func TestShutdownWaitsForInFlightRequest(t *testing.T) {
+	s, err := NewServer()
+	assert.NoError(t, err)
+
+	started := make(chan struct{}, 1)
+	finished := make(chan struct{}, 1)
+	s.GETI("/slow", func(w http.ResponseWriter, r *http.Request) {
+		started <- struct{}{}
+		time.Sleep(150 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+		finished <- struct{}{}
+	})
+
+	addr := getFreeAddr(t)
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.Serve(addr)
+	}()
+
+	waitForServer(t, addr)
+
+	respCh := make(chan error, 1)
+	go func() {
+		resp, err := http.Get("http://" + addr + "/slow")
+		if err != nil {
+			respCh <- err
+			return
+		}
+		defer resp.Body.Close()
+		respCh <- nil
+	}()
+
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("request did not start")
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err = s.Shutdown(shutdownCtx)
+	assert.NoError(t, err)
+
+	select {
+	case <-finished:
+	case <-time.After(2 * time.Second):
+		t.Fatal("in-flight request did not finish before shutdown")
+	}
+
+	assert.NoError(t, <-respCh)
+	assert.NoError(t, <-errCh)
+}
+
+func getFreeAddr(t *testing.T) string {
+	t.Helper()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to allocate free address: %v", err)
+	}
+	defer listener.Close()
+
+	return listener.Addr().String()
+}
+
+func waitForServer(t *testing.T, addr string) {
+	t.Helper()
+
+	client := &http.Client{Timeout: 100 * time.Millisecond}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := client.Get("http://" + addr + "/health")
+		if err == nil {
+			resp.Body.Close()
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Fatalf("server at %s did not start in time", addr)
 }
