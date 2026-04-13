@@ -65,40 +65,95 @@ ALLOWED_ORIGINS=https://app.example.com,https://admin.example.com
 package main
 
 import (
-    "net/http"
-    "github.com/loissascha/go-http-server/respond"
-    "github.com/loissascha/go-http-server/server"
+	"context"
+	"log"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/loissascha/go-http-server/respond"
+	"github.com/loissascha/go-http-server/server"
 )
 
 func main() {
-    // Create server with options
-    s, err := server.NewServer(
-        server.EnableTranslations(),
-        server.EnableAutoDetectLanguage(),
-        server.AddTranslationFile("en", "en.json"),
-        server.AddTranslationFile("de", "de.json"),
-        server.SetDefaultLanguage("en"),
-    )
-    if err != nil {
-        panic(err)
-    }
+	s, err := server.NewServer(
+		server.SetReadHeaderTimeout(5*time.Second),
+		server.SetReadTimeout(15*time.Second),
+		server.SetWriteTimeout(15*time.Second),
+		server.SetIdleTimeout(60*time.Second),
+		server.SetMaxHeaderBytes(1<<20),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    // Define routes
-    s.GET("/", homeHandler)
-    s.POST("/api/data", dataHandler)
+	s.GET("/", homeHandler)
+	s.POST("/api/data", dataHandler)
 
-    // Start server
-    s.Serve(":8080")
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- s.Serve(":8080")
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			log.Fatal(err)
+		}
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		if err := s.Shutdown(shutdownCtx); err != nil {
+			log.Fatal(err)
+		}
+
+		if err := <-errCh; err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-    // Get translated string
-    message := s.GetLanguageString(r, "welcome")
-    respond.JSON(w, http.StatusOK, map[string]string{"message": message})
+	respond.JSON(w, http.StatusOK, map[string]string{"message": "ok"})
 }
 
 func dataHandler(w http.ResponseWriter, r *http.Request) {
-    respond.JSON(w, http.StatusOK, map[string]string{"status": "success"})
+	respond.JSON(w, http.StatusOK, map[string]string{"status": "success"})
+}
+```
+
+## Graceful Shutdown
+
+Best practice is to let the application own OS signal handling and call `Shutdown` with a timeout.
+
+- Start `Serve` in a goroutine
+- Wait for `SIGINT` or `SIGTERM`
+- Call `Shutdown` with a bounded context so in-flight requests can finish cleanly
+
+```go
+ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+defer stop()
+
+errCh := make(chan error, 1)
+go func() {
+	errCh <- s.Serve(":8080")
+}()
+
+<-ctx.Done()
+
+shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+if err := s.Shutdown(shutdownCtx); err != nil {
+	log.Fatal(err)
+}
+
+if err := <-errCh; err != nil {
+	log.Fatal(err)
 }
 ```
 
