@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Method int
@@ -26,6 +27,11 @@ type Server struct {
 	mux                       *http.ServeMux
 	Paths                     map[string][]ServerPath
 	Options                   []ServerOption
+	ReadHeaderTimeout         time.Duration
+	ReadTimeout               time.Duration
+	WriteTimeout              time.Duration
+	IdleTimeout               time.Duration
+	MaxHeaderBytes            int
 	TranslationsEnabled       bool
 	AutoDetectLanguageEnabled bool
 	Languages                 map[string]map[string]string
@@ -49,10 +55,18 @@ func NewServer(options ...ServerOption) (*Server, error) {
 	s := Server{
 		Paths:               map[string][]ServerPath{},
 		Options:             options,
+		ReadHeaderTimeout:   5 * time.Second,
+		ReadTimeout:         15 * time.Second,
+		WriteTimeout:        15 * time.Second,
+		IdleTimeout:         60 * time.Second,
+		MaxHeaderBytes:      1 << 20,
 		Languages:           map[string]map[string]string{},
 		ExportTypesLocation: "./export.ts",
 	}
-	s.initServerOptions()
+	err := s.initServerOptions()
+	if err != nil {
+		return nil, err
+	}
 	s.mux = http.NewServeMux()
 	return &s, nil
 }
@@ -276,7 +290,17 @@ func (s *Server) Serve(addr string) error {
 		}
 	}
 
-	err = http.ListenAndServe(addr, s.mux)
+	httpServer := &http.Server{
+		Addr:              addr,
+		Handler:           s.mux,
+		ReadHeaderTimeout: s.ReadHeaderTimeout,
+		ReadTimeout:       s.ReadTimeout,
+		WriteTimeout:      s.WriteTimeout,
+		IdleTimeout:       s.IdleTimeout,
+		MaxHeaderBytes:    s.MaxHeaderBytes,
+	}
+
+	err = httpServer.ListenAndServe()
 	return err
 }
 

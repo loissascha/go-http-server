@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -21,6 +22,11 @@ func TestServerSetup(t *testing.T) {
 	assert.False(t, s.TranslationsEnabled)
 	assert.False(t, s.AutoDetectLanguageEnabled)
 	assert.Equal(t, s.DefaultLanguage, "")
+	assert.Equal(t, 5*time.Second, s.ReadHeaderTimeout)
+	assert.Equal(t, 15*time.Second, s.ReadTimeout)
+	assert.Equal(t, 15*time.Second, s.WriteTimeout)
+	assert.Equal(t, 60*time.Second, s.IdleTimeout)
+	assert.Equal(t, 1<<20, s.MaxHeaderBytes)
 	assert.Equal(t, 1, len(s.Paths)) // has only one path because "/test" always refers to the same path
 	assert.Nil(t, err)
 
@@ -136,4 +142,27 @@ func TestUnsupportedMethodReturnsMethodNotAllowed(t *testing.T) {
 	assert.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
+}
+
+func TestServerTimeoutOptions(t *testing.T) {
+	s, err := NewServer(
+		SetReadHeaderTimeout(2*time.Second),
+		SetReadTimeout(10*time.Second),
+		SetWriteTimeout(20*time.Second),
+		SetIdleTimeout(90*time.Second),
+		SetMaxHeaderBytes(2048),
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, 2*time.Second, s.ReadHeaderTimeout)
+	assert.Equal(t, 10*time.Second, s.ReadTimeout)
+	assert.Equal(t, 20*time.Second, s.WriteTimeout)
+	assert.Equal(t, 90*time.Second, s.IdleTimeout)
+	assert.Equal(t, 2048, s.MaxHeaderBytes)
+}
+
+func TestInvalidServerTimeoutOptionReturnsError(t *testing.T) {
+	s, err := NewServer(ServerOption{Name: READ_TIMEOUT, Value: "not-a-duration"})
+	assert.Nil(t, s)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid read timeout")
 }
